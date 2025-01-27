@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32 Data</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .container {
+            display: flex;
+        }
+        .left-panel {
+            width: 30%;
+            padding: 20px;
+            border-right: 1px solid #ddd;
+        }
+        .right-panel {
+            width: 70%;
+            padding: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        let chart;
+
+        function fetchData(esp32_id) {
+            $.get(`/data/${esp32_id}`, function(data) {
+                // Update the table
+                let tableBody = $('#data-table tbody');
+                tableBody.empty();
+                let timestamps = [];
+                let values = [];
+
+                data.forEach(function(row) {
+                    tableBody.append(
+                        '<tr>' +
+                            '<td>' + row[2] + '</td>' +  // Timestamp
+                            '<td>' + row[3] + '</td>' +  // Value
+                        '</tr>'
+                    );
+                    timestamps.push(row[2]); // Assuming timestamp is in the 2nd column
+                    values.push(row[3]); // Assuming value is in the 3rd column
+                });
+
+                // Update the chart
+                if (chart) {
+                    chart.destroy(); // Destroy the previous chart instance
+                }
+
+                const ctx = document.getElementById('data-chart').getContext('2d');
+                chart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: timestamps,
+                        datasets: [{
+                            label: 'Sensor Values',
+                            data: values,
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            borderWidth: 1,
+                            fill: false
+                        }]
+                    },
+                    options: {
+                        scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Timestamp'
+                                }
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: 'Value'
+                                }
+                            }
+                        }
+                    }
+                });
+            });
+        }
+
+        $(document).ready(function() {
+            $('.esp32-id').click(function() {
+                const esp32_id = $(this).data('id');
+                fetchData(esp32_id);
+            });
+        });
+    </script>
+</head>
+<body>
+    <h1>ESP32 Data</h1>
+    <div class="container">
+        <div class="left-panel">
+            <h2>ESP32 IDs</h2>
+            <ul>
+                {% for esp32_id in esp32_ids %}
+                <li class="esp32-id" data-id="{{ esp32_id[0] }}">{{ esp32_id[0] }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div class="right-panel">
+            <h2>Data for Selected ESP32</h2>
+            <canvas id="data-chart" width="400" height="200"></canvas>
+            <h3>Data Table</h3>
+            <table id="data-table">
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Value</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Data will be populated here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>
